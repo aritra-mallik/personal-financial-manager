@@ -1,5 +1,6 @@
 asgiref==3.9.1
 Django==5.2.4
+<<<<<<< HEAD
 joblib==1.5.1
 numpy==2.3.1
 pandas==2.3.1
@@ -10,4 +11,7 @@ scipy==1.16.0
 six==1.17.0
 sqlparse==0.5.3
 threadpoolctl==3.6.0
+=======
+sqlparse==0.5.3
+>>>>>>> f28e396ee37f30266214e1b96dc5a206e4c3f40b
 tzdata==2025.2
