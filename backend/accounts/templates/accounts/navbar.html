@@ -1,0 +1,15 @@
+
+    <div style="height: 80px;"></div>
+    <nav style="position: absolute; top: 0; left: 0; width: 100%; background: linear-gradient(90deg, #4f8cff 0%, #073da2 100%); padding: 1rem 0; box-shadow: 0 4px 16px rgba(0,0,0,0.07); z-index: 10; font-family: 'Segoe UI', Arial, sans-serif;">
+        <div style="max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: center; padding: 0 2rem;">
+            <span style="color: #fff; font-size: 1.35rem; font-weight: 700; letter-spacing: 1.5px; display: flex; align-items: center;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style="margin-right: 0.6rem;"><circle cx="12" cy="12" r="10" fill="#fff" opacity="0.13"/><path d="M7 13.5V11a5 5 0 0 1 10 0v2.5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="7" y="13.5" width="10" height="4" rx="2" fill="#fff" opacity="0.18"/><rect x="7" y="13.5" width="10" height="4" rx="2" stroke="#fff" stroke-width="2"/></svg>
+                Budget & Finance Manager
+            </span>
+            <div style="display: flex; gap: 1.2rem; margin-left: auto;">
+                <a href="{% url 'homepage' %}" style="color: #fff; text-decoration: none; font-size: 1.05rem; font-weight: 500; padding: 0.4rem 1.1rem; border-radius: 5px; transition: background 0.18s;">Home</a>
+                <a href="{% url 'login' %}" style="color: #fff; text-decoration: none; font-size: 1.05rem; font-weight: 500; padding: 0.4rem 1.1rem; border-radius: 5px; background: rgba(255,255,255,0.13); box-shadow: 0 2px 8px rgba(79,140,255,0.07);">Login</a>
+                <a href="{% url 'register' %}" style="color: #fff; text-decoration: none; font-size: 1.05rem; font-weight: 500; padding: 0.4rem 1.1rem; border-radius: 5px; background: #ffffff; color: #073da2; box-shadow: 0 2px 8px rgba(79,140,255,0.13); transition: background 0.18s, color 0.18s;">Sign Up</a>
+            </div>
+        </div>
+    </nav>
