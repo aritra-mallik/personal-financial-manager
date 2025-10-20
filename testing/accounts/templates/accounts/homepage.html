@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Personal Finance Manager - Home</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+    body {
+        font-family: 'Segoe UI', Arial, sans-serif;
+        background: linear-gradient(135deg, #050a0c, #0e1b21, #182a35);
+        margin: 0;
+        padding: 0;
+        color: #fff;
+    }
+
+    .container {
+        max-width: 700px;
+        margin: 60px auto;
+        background: rgba(255, 255, 255, 0.08); /* glass effect */
+        backdrop-filter: blur(20px) saturate(160%);
+        -webkit-backdrop-filter: blur(20px) saturate(160%);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+        padding: 40px 30px;
+        animation: fadeIn 0.6s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    h1 {
+        color: #ffc42eff; /* warm yellow for headings */
+        margin-bottom: 16px;
+        text-align: center;
+        font-size: 2rem;
+    }
+
+    p {
+        color: #e0e0e0;
+        line-height: 1.7;
+        font-size: 1.1em;
+    }
+
+    .features {
+        margin-top: 30px;
+        list-style: disc inside;
+        padding-left: 0;
+    }
+
+    .features li {
+        margin-bottom: 10px;
+        color: #cfe1ff;
+        font-weight: 500;
+    }
+</style>
+
+</head>
+<canvas id="money-bg"></canvas>
+<body>
+    {% include "accounts/navbar.html" %}
+    <div class="container">
+        
+        <h1>Welcome to Personal Finance Manager App</h1>
+        <p>
+            Personal Finance Manager is your personal assistant for managing finances and tracking your budget.
+            Our platform helps you organize your income, monitor expenses, and set financial goals with ease.
+        </p>
+        <ul class="features">
+            <li>Track your income and expenses effortlessly</li>
+            <li>Create and manage multiple budgets</li>
+            <li>Visualize your spending with interactive charts</li>
+            <li>Set savings goals and monitor your progress</li>
+            <li>Receive reminders for bills and payments</li>
+            <li>Access your financial data securely from anywhere</li>
+        </ul>
+        <p>
+            Start your journey towards better financial health today!
+        </p>
+    </div>
+
+</body>
+</html>

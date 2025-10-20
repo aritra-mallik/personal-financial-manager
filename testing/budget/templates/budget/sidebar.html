@@ -1,0 +1,130 @@
+<!-- budget/sidebar.html -->
+ {% load static %}
+<link rel="stylesheet" href="{% static 'budget/sidebar.css' %}">
+<canvas id="money-bg"></canvas>
+<div class="sidebar" id="sidebar">
+    <a href="{% url 'add_budget' %}" class={% if request.resolver_match.url_name == 'add_budget' %}active{% endif %} data-tooltip="Create Budget"><span>➕</span><span class="label">Create Budget</span></a>
+
+    <a href="{% url 'budget_list' %}" class={% if request.resolver_match.url_name == 'budget_list' %}active{% endif %} data-tooltip="Budget History"><span>📜</span><span class="label">Budget History</span></a>
+
+        <!-- budget/sidebar.html -->
+    {% comment %} {% if budget and budget.id %}
+        <a href="{% url 'xero_budget_mode' budget.id %}" class="{% if request.resolver_match.url_name == 'xero_budget_mode' %}active{% endif %}" data-tooltip="Zero Based Budget">
+            <span>🟰</span><span class="label">Zero Based Budget</span>
+        </a>
+    {% endif %} {% endcomment %}
+</div>
+
+
+<script>
+        // Popup fadeout
+    setTimeout(() => {
+        document.querySelectorAll(".popup-message").forEach(msg => {
+            msg.classList.add("fade-out");
+            setTimeout(() => msg.remove(), 500);
+        });
+    }, 8000);
+    // Sidebar toggle
+    const sidebar = document.getElementById('sidebar');
+    const toggleBtn = document.getElementById('toggleBtn');
+
+    toggleBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('collapsed');
+    });
+</script>
+<script>
+const canvas = document.getElementById('money-bg');
+if (canvas) {
+  const ctx = canvas.getContext('2d');
+
+  function resize(){
+    canvas.width = innerWidth * devicePixelRatio;
+    canvas.height = innerHeight * devicePixelRatio;
+    ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  class Bill {
+    constructor(){ this.reset(); }
+    reset(){
+      this.x = Math.random()*innerWidth - 200;
+      this.y = innerHeight + Math.random()*200;
+      const speed = 1 + Math.random()*3;
+      const angle = -Math.PI/3 + (Math.random()-0.5)*0.6;
+      this.vx = Math.cos(angle)*speed;
+      this.vy = Math.sin(angle)*speed;
+      this.size = 40 + Math.random()*80;
+      this.rotation = (Math.random()*2-1) * 0.5;
+      this.spin = (Math.random()*2-1)*0.03;
+      this.opacity = 0;
+      this.life = 0;
+      this.maxLife = 200 + Math.random()*200;
+      this.color = `hsl(${100+Math.random()*60} 60% 40%)`;
+    }
+    update(){
+      this.x += this.vx;
+      this.y += this.vy;
+      this.rotation += this.spin;
+      this.life++;
+      this.opacity = Math.min(1, this.life/30);
+      if(this.life > this.maxLife - 40)
+        this.opacity = Math.max(0, (this.maxLife - this.life)/40);
+      if(this.x > innerWidth + 300 || this.y < -300 || this.life > this.maxLife)
+        this.reset();
+    }
+    draw(){
+      ctx.save();
+      ctx.globalAlpha = this.opacity;
+      ctx.translate(this.x, this.y);
+      ctx.rotate(this.rotation);
+      const w = this.size;
+      const h = this.size * 0.55;
+      ctx.fillStyle = this.color;
+      ctx.strokeStyle = "#155d27";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(-w/2, -h/2, w, h, 8);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#0c2b0a";
+      ctx.font = `${Math.round(h*0.6)}px serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("$", 0, 0);
+      ctx.restore();
+    }
+  }
+
+  // roundRect polyfill for older browsers
+  if (!CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r){
+      if (typeof r === 'number') r = {tl:r,tr:r,br:r,bl:r};
+      this.beginPath();
+      this.moveTo(x + r.tl, y);
+      this.arcTo(x + w, y, x + w, y + h, r.tr);
+      this.arcTo(x + w, y + h, x, y + h, r.br);
+      this.arcTo(x, y + h, x, y, r.bl);
+      this.arcTo(x, y, x + w, y, r.tl);
+      this.closePath();
+      return this;
+    }
+  }
+
+  const bills = Array.from({length: 60}, _=> new Bill());
+
+  function loop(){
+    const isDark = document.body.classList.contains("dark");
+    ctx.fillStyle = isDark ? "#000" : "#fff"; // black for dark mode, white for light
+    ctx.fillRect(0,0,innerWidth,innerHeight);
+
+    for (const b of bills){
+      b.update();
+      b.draw();
+    }
+
+    requestAnimationFrame(loop);
+  }
+  loop();
+}
+</script>
