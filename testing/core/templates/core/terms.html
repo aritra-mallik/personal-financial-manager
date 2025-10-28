@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terms & Conditions - Personal Finance App</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'core/styles.css' %}"> <!-- your CSS file -->
+</head>
+<canvas id="money-bg"></canvas>
+<body class="{% if user_theme == 'light' %}light{% else %}dark{% endif %}">
+  <header>
+    {% include 'core/header.html' %}
+  </header>
+  <main>
+    <h1 class="page-title">📜 Terms & Conditions</h1>
+
+    <div class="card">
+      <p>By using the Personal Finance App, you agree to the following terms:</p>
+
+      <h3>1. User Responsibilities</h3>
+      <ul>
+        <li>Provide accurate financial data for better insights.</li>
+        <li>Keep your login credentials secure.</li>
+        <li>Use the app for lawful personal finance management only.</li>
+      </ul>
+
+      <h3>2. Limitations of Liability</h3>
+      <p>The app provides financial tracking and insights for informational purposes only. We are not responsible for financial decisions made by users.</p>
+
+      <h3>3. Service Availability</h3>
+      <p>We strive for uninterrupted service but cannot guarantee availability at all times due to maintenance, updates, or technical issues.</p>
+
+      <h3>4. Modifications</h3>
+      <p>We may update these terms and policies periodically. Users will be notified within the app of significant changes.</p>
+    </div>
+</main>
+<footer>
+      {% include 'core/footer.html' %}
+</footer>
+
+<script>
+const canvas = document.getElementById('money-bg');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// Draw a few static bills
+for(let i=0;i<20;i++){
+  const x = Math.random() * canvas.width;
+  const y = Math.random() * canvas.height;
+  const size = 80 + Math.random()*100;
+  ctx.fillStyle = `hsl(${100+Math.random()*60} 60% 40%)`;
+  ctx.strokeStyle = "#155d27";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(x, y, size, size*0.55, 6);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = "#0c2b0a";
+  ctx.font = `${Math.round(size*0.55*0.6)}px serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("$", x+size/2, y+size*0.55/2);
+}
+</script>
+</body>
+</html>
