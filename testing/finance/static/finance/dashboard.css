@@ -39,6 +39,7 @@ h1 {
     -webkit-background-clip: text;
     color: transparent;
     -webkit-text-fill-color: transparent;
+   text-shadow: 0px 4px 6px rgba(0, 0, 0, 0.3);
 }
 
 .summary-container {
@@ -369,4 +370,5 @@ body.dark .upload-section {
 .upload-section button:hover {
     transform: scale(1.05);
     box-shadow: 0 0 15px rgba(241, 7, 163, 0.6);
+
 }
