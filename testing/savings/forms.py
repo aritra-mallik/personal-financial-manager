@@ -7,7 +7,9 @@ class SavingsGoalForm(forms.ModelForm):
     class Meta:
         model = SavingsGoal
         fields = ["name", "target_amount", "deadline", "priority"]
+        labels = {"name": "Savings Goal Name :", "target_amount": "Target Amount :", "deadline": "Deadline :", "priority": "Priority :"}
         widgets = {
+            "name": forms.TextInput(attrs={"placeholder": "Enter Name of a Savings Goal", "class": "form-input"}),
             "deadline": forms.DateInput(attrs={"type": "date"}),
             "target_amount": forms.NumberInput(attrs={"placeholder": "Enter Target Amount", "class": "form-input"}),
             "priority": forms.Select(attrs={"class": "form-select"}),
