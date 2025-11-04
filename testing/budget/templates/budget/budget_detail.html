@@ -135,7 +135,7 @@
         <form method="post" action="{% url 'add_category' budget.id %}">
             {% csrf_token %}
             <p>
-                <label for="id_category">Category:</label>
+                <label for="id_category">Budget Category:</label>
                 {{ form.category }}
             </p>
             <p>
