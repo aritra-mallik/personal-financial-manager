@@ -25,6 +25,7 @@ class BudgetForm(forms.ModelForm):
     class Meta:
         model = Budget
         fields = ["name", "total_percent", "start_date", "end_date"]
+        labels = {"name": "Budget Name"}
         widgets = {
             "name": forms.TextInput(attrs={"placeholder": "Enter a Budget Name", "class": "form-input"}),
         }
