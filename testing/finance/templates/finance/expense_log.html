@@ -182,7 +182,14 @@
         </div>
     </div>
 
-    <div class="chart-placeholder">
+    <div class="chart-placeholder" style="position: relative;"> 
+        <form method="get" id="viewForm" style="position: absolute; top: 10px; right: 10px; padding: 5px 8px;">
+            <select name="view" id="viewSelect" onchange="document.getElementById('viewForm').submit()">
+                <option value="monthly" {% if view_type == 'monthly' %}selected{% endif %}>Last 12 Months</option>
+                <option value="yearly" {% if view_type == 'yearly' %}selected{% endif %}>Yearly</option>
+                <option value="all" {% if view_type == 'all' %}selected{% endif %}>All Time (monthly)</option>
+            </select>
+        </form>
         <canvas id="expenseLogChart"></canvas>
     </div>
 </main>
@@ -258,58 +265,54 @@ function filterByCategory(category) {
         }
     });
     function getExpenseLogThemeColors() {
-        const isDark = document.body.classList.contains("dark");
-        return {
-            text: isDark ? "#E0E0E0" : "#222",
-            line: isDark ? "#FF6384" : "#E74C3C",
-            grid: isDark ? "#333" : "#ccc"
-        };
-    }
+    const isDark = document.body.classList.contains("dark");
+    return {
+        text: isDark ? "#E0E0E0" : "#222",
+        bar: isDark ? "#FF6F61" : "#CC4444",
+        grid: isDark ? "#333" : "#ccc"
+    };
+}
 
-    function createExpenseLogChart() {
-        const ctx = document.getElementById('expenseLogChart').getContext("2d");
-        const colors = getExpenseLogThemeColors();
+function createExpenseLogChart() {
+    const ctx = document.getElementById('expenseLogChart').getContext("2d");
+    const colors = getExpenseLogThemeColors();
 
-        return new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: {{ labels|safe }},
-                datasets: [{
-                    label: 'Expenses ({{ user_currency}})',
-                    data: {{ data|safe }},
-                    borderColor: colors.line,
-                    fill: false,
-                    tension: 0.1
-                }]
-            },
-            options: {
-                plugins: {
-                    legend: {
-                        labels: { color: colors.text }
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: { color: colors.text },
-                        grid: { color: colors.grid }
-                    },
-                    y: {
-                        ticks: { color: colors.text },
-                        grid: { color: colors.grid }
-                    }
+    return new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: {{ labels|safe }},
+            datasets: [{
+                label: 'Expenses ({{ user_currency }})',
+                data: {{ data|safe }},
+                backgroundColor: colors.bar,
+                borderRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { labels: { color: colors.text } },
+                zoom: {
+                    zoom: { wheel: { enabled: true }, mode: 'x' },
+                    pan: { enabled: true, mode: 'x' }
                 }
+            },
+            scales: {
+                x: { ticks: { color: colors.text }, grid: { color: colors.grid } },
+                y: { ticks: { color: colors.text }, grid: { color: colors.grid } }
             }
-        });
-    }
-
-    // initialize
-    let expenseLogChart = createExpenseLogChart();
-
-    // re-render when theme changes
-    document.addEventListener("themeChanged", () => {
-        expenseLogChart.destroy();
-        expenseLogChart = createExpenseLogChart();
+        }
     });
+}
+
+let expenseLogChart = createExpenseLogChart();
+
+// Re-render when theme changes
+document.addEventListener("themeChanged", () => {
+    expenseLogChart.destroy();
+    expenseLogChart = createExpenseLogChart();
+});
+
 </script>
 </body>
 </html>
