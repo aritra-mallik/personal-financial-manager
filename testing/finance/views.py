@@ -615,14 +615,52 @@ def expense_log(request):
     expenses = Expense.objects.filter(user=request.user).order_by('-date')
     categories = [choice[0] for choice in Expense.CATEGORY_CHOICES]
 
-    labels = [expense.date.strftime('%Y-%m-%d') for expense in expenses]
-    data = [float(expense.amount) for expense in expenses]
+    # --- New: view filter ---
+    view_type = request.GET.get('view', 'monthly')
+    end_date = timezone.now().date()
 
-    paginator = Paginator(expenses, 20)  # Show 20 expenses per page
+    # --- Monthly (last 12 months) ---
+    if view_type == 'monthly':
+        start_date = end_date - relativedelta(months=12)
+        aggregated = (
+            Expense.objects.filter(user=request.user, date__gte=start_date)
+            .annotate(period=TruncMonth('date'))
+            .values('period')
+            .annotate(total=Sum('amount'))
+            .order_by('period')
+        )
+        labels = [e['period'].strftime('%Y-%m') for e in aggregated]
+        data = [float(e['total']) for e in aggregated]
+
+    # --- Yearly ---
+    elif view_type == 'yearly':
+        aggregated = (
+            Expense.objects.filter(user=request.user)
+            .annotate(period=TruncYear('date'))
+            .values('period')
+            .annotate(total=Sum('amount'))
+            .order_by('period')
+        )
+        labels = [e['period'].strftime('%Y') for e in aggregated]
+        data = [float(e['total']) for e in aggregated]
+
+    # --- All-time (monthly) ---
+    else:
+        aggregated = (
+            Expense.objects.filter(user=request.user)
+            .annotate(period=TruncMonth('date'))
+            .values('period')
+            .annotate(total=Sum('amount'))
+            .order_by('period')
+        )
+        labels = [e['period'].strftime('%Y-%m') for e in aggregated]
+        data = [float(e['total']) for e in aggregated]
+
+    # --- Pagination (unchanged) ---
+    paginator = Paginator(expenses, 20)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
 
-    # Sliding window of 5 pages
     total_pages = paginator.num_pages
     current_page = page_obj.number
     window_size = 5
@@ -631,17 +669,18 @@ def expense_log(request):
     if end_page - start_page < window_size - 1:
         start_page = max(end_page - window_size + 1, 1)
     page_range = range(start_page, end_page + 1)
-    
-    #prediction
+
+    # --- Forecast (unchanged) ---
     forecast = get_user_expense_forecast(request.user)
 
-    context={
+    context = {
         'expenses': page_obj,
         'labels': labels,
         'data': data,
         'categories': categories,
         'page_obj': page_obj,
         'page_range': page_range,
+        'view_type': view_type,
         #pass raw values for easy checks in template
         'spent_so_far': forecast['spent_so_far'],
         'current_month_expected': forecast['this_month_expected'],
@@ -649,7 +688,7 @@ def expense_log(request):
         # Flags for template
         'spent_so_far_numeric': isinstance(forecast['spent_so_far'], (int, float, Decimal)),
         'current_month_expected_numeric': isinstance(forecast['this_month_expected'], (int, float, Decimal)),
-        'next_month_expected_numeric': isinstance(forecast['next_month_expected'], (int, float, Decimal))
+        'next_month_expected_numeric': isinstance(forecast['next_month_expected'], (int, float, Decimal)),
     }
     return render(request, 'finance/expense_log.html', context)
 
@@ -676,14 +715,52 @@ def income_history(request):
     incomes = Income.objects.filter(user=request.user).order_by('-date')
     categories = [choice[0] for choice in Income.CATEGORY_CHOICES]
 
-    labels=[income.date.strftime('%Y-%m-%d') for income in incomes]
-    data=[float(income.amount) for income in incomes]
+    # --- NEW: filter selection ---
+    view_type = request.GET.get('view', 'monthly')
+    end_date = timezone.now().date()
 
-    paginator = Paginator(incomes, 20)  # Show 20 incomes per page
+    # --- monthly (last 12 months) ---
+    if view_type == 'monthly':
+        start_date = end_date - relativedelta(months=12)
+        monthly_data = (
+            Income.objects.filter(user=request.user, date__gte=start_date)
+            .annotate(period=TruncMonth('date'))
+            .values('period')
+            .annotate(total=Sum('amount'))
+            .order_by('period')
+        )
+        labels = [entry['period'].strftime('%Y-%m') for entry in monthly_data]
+        data = [float(entry['total']) for entry in monthly_data]
+
+    # --- yearly ---
+    elif view_type == 'yearly':
+        yearly_data = (
+            Income.objects.filter(user=request.user)
+            .annotate(period=TruncYear('date'))
+            .values('period')
+            .annotate(total=Sum('amount'))
+            .order_by('period')
+        )
+        labels = [entry['period'].strftime('%Y') for entry in yearly_data]
+        data = [float(entry['total']) for entry in yearly_data]
+
+    # --- all time (monthly grouped) ---
+    else:
+        all_data = (
+            Income.objects.filter(user=request.user)
+            .annotate(period=TruncMonth('date'))
+            .values('period')
+            .annotate(total=Sum('amount'))
+            .order_by('period')
+        )
+        labels = [entry['period'].strftime('%Y-%m') for entry in all_data]
+        data = [float(entry['total']) for entry in all_data]
+
+    # --- Pagination unchanged ---
+    paginator = Paginator(incomes, 20)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
 
-    #sliding window of 5 pages
     total_pages = paginator.num_pages
     current_page = page_obj.number
     window_size = 5
@@ -692,14 +769,15 @@ def income_history(request):
     if end_page - start_page < window_size - 1:
         start_page = max(end_page - window_size + 1, 1)
     page_range = range(start_page, end_page + 1)
-    
-    context={
+
+    context = {
         'incomes': page_obj,
         'labels': labels,
         'data': data,
         'categories': categories,
         'page_obj': page_obj,
         'page_range': page_range,
+        'view_type': view_type,
     }
     return render(request, 'finance/income_history.html', context)
 
@@ -1144,3 +1222,4 @@ def dashboard(request):
 
 
                 
+
