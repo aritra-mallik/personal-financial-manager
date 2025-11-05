@@ -206,6 +206,7 @@ button:hover {
     align-items: center;
     justify-content: center;
     margin-top: 15px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.4);
 }
 
 /* Popup container (top center stack) */
@@ -361,4 +362,5 @@ body.dark .prediction-card {
     border: 1px solid rgba(255, 255, 255, 0.15);
     box-shadow: 0 6px 25px rgba(0,0,0,0.5);
 }
+
 
