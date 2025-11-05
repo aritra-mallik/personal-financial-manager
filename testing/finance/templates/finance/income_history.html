@@ -145,10 +145,18 @@
             {% endif %}
         </div>
     </div>
+    <div class="chart-placeholder" style="position: relative;"> 
+        <form method="get" id="viewForm" style="position: absolute; top: 10px; right: 10px; padding: 5px 8px;">
+            <select name="view" id="viewSelect" onchange="document.getElementById('viewForm').submit()">
+                <option value="monthly" {% if view_type == 'monthly' %}selected{% endif %}>Last 12 Months</option>
+                <option value="yearly" {% if view_type == 'yearly' %}selected{% endif %}>Yearly</option>
+                <option value="all" {% if view_type == 'all' %}selected{% endif %}>All Time (monthly)</option>
+            </select>
+        </form>
 
-    <div class="chart-placeholder">
         <canvas id="incomeHistoryChart"></canvas>
     </div>
+
 </main>
 </div>
 
@@ -221,58 +229,55 @@ function filterByCategory(category) {
             alert("Please select at least one income to delete.");
         }
     });
+
     function getIncomeHistoryThemeColors() {
-        const isDark = document.body.classList.contains("dark");
-        return {
-            text: isDark ? "#E0E0E0" : "#222",
-            line: isDark ? "#00BFA6" : "#009973",
-            grid: isDark ? "#333" : "#ccc"
-        };
-    }
+    const isDark = document.body.classList.contains("dark");
+    return {
+        text: isDark ? "#E0E0E0" : "#222",
+        bar: isDark ? "#00BFA6" : "#009973",
+        grid: isDark ? "#333" : "#ccc"
+    };
+}
 
-    function createIncomeHistoryChart() {
-        const ctx = document.getElementById('incomeHistoryChart').getContext("2d");
-        const colors = getIncomeHistoryThemeColors();
+function createIncomeHistoryChart() {
+    const ctx = document.getElementById('incomeHistoryChart').getContext("2d");
+    const colors = getIncomeHistoryThemeColors();
 
-        return new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: {{ labels|safe }},
-                datasets: [{
-                    label: 'Income ({{ user_currency}})',
-                    data: {{ data|safe }},
-                    borderColor: colors.line,
-                    fill: false,
-                    tension: 0.1
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { labels: { color: colors.text } }
-                },
-                scales: { 
-                    x: { 
-                        ticks: { color: colors.text },
-                        grid: { color: colors.grid }
-                    }, 
-                    y: { 
-                        ticks: { color: colors.text },
-                        grid: { color: colors.grid }
-                    } 
+    return new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: {{ labels|safe }},
+            datasets: [{
+                label: 'Income ({{ user_currency }})',
+                data: {{ data|safe }},
+                backgroundColor: colors.bar,
+                borderRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { labels: { color: colors.text } },
+                zoom: {
+                    zoom: { wheel: { enabled: true }, mode: 'x' },
+                    pan: { enabled: true, mode: 'x' }
                 }
+            },
+            scales: {
+                x: { ticks: { color: colors.text }, grid: { color: colors.grid } },
+                y: { ticks: { color: colors.text }, grid: { color: colors.grid } }
             }
-        });
-    }
-
-    // initialize
-    let incomeHistoryChart = createIncomeHistoryChart();
-
-    // re-render when theme changes
-    document.addEventListener("themeChanged", () => {
-        incomeHistoryChart.destroy();
-        incomeHistoryChart = createIncomeHistoryChart();
+        }
     });
+}
+
+let incomeHistoryChart = createIncomeHistoryChart();
+
+// Re-render when theme changes
+document.addEventListener("themeChanged", () => {
+    incomeHistoryChart.destroy();
+    incomeHistoryChart = createIncomeHistoryChart();
+});
 </script>
 </body>
 </html>
