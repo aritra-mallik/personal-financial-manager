@@ -122,21 +122,6 @@
                 </div>
             </div>
 
-            <script>
-                function applyFilter(value) {
-                    const params = new URLSearchParams(window.location.search);
-                    if(value === 'all') {
-                        params.delete('filter');
-                    } else {
-                        params.set('filter', value);
-                    }
-                    params.set('page', 1); // reset to first page
-                    window.location.search = params.toString();
-                }
-            </script>
-
-
-
             <!-- Goals Table -->
             <table>
                 <thead>
@@ -269,6 +254,17 @@
     <footer>{% include 'core/footer.html' %}</footer>
 
     <script>
+        //Apply filter function
+        function applyFilter(value) {
+                    const params = new URLSearchParams(window.location.search);
+                    if(value === 'all') {
+                        params.delete('filter');
+                    } else {
+                        params.set('filter', value);
+                    }
+                    params.set('page', 1); // reset to first page
+                    window.location.search = params.toString();
+                }
         // Delete selected goals (refund)
         document.getElementById("delete-selected-form").addEventListener("submit", function (e) {
             const ids = Array.from(document.querySelectorAll(".row-checkbox:checked")).map(cb => cb.dataset.goalId);
