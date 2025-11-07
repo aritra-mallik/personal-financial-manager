@@ -1,0 +1,195 @@
+/* Define variables for both themes */
+body {
+    --bg-color: #ffffff;
+    --text-color: #121212;
+    --card-bg: rgba(245, 245, 245, 0.6);
+    --table-bg: rgba(255, 255, 255, 0.6);
+    --table-alt-bg: rgba(240, 240, 240, 0.5);
+    --table-th-bg: #00BFA6;
+    --button-bg: #00BFA6;
+    --button-hover-bg: #51f8e1;
+    --edit-bg: #c97610;
+    --edit-hover-bg: #e0b03a;
+    --delete-bg: #981c37;
+    --delete-hover-bg: #e03a2e;
+}
+
+/* Dark Theme Overrides */
+body.dark {
+    --bg-color: #121212;
+    --text-color: #E0E0E0;
+    --card-bg: rgba(30, 30, 30, 0.5);
+    --table-bg: rgba(30, 30, 30, 0.5);
+    --table-alt-bg: rgba(42, 42, 42, 0.4);
+    --table-th-bg: #00BFA6;
+    --button-bg: #00BFA6;
+    --button-hover-bg: #51f8e1;
+    --edit-bg: #c97610;
+    --edit-hover-bg: #e0b03a;
+    --delete-bg: #981c37;
+    --delete-hover-bg: #e03a2e;
+}
+
+/* Apply variables */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    transition: background 0.5s ease, color 0.5s ease;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+main {
+    padding: 20px;
+    max-width: 1200px;
+    margin: auto;
+}
+
+.page-title {
+    text-align: center;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, #7b2ff7, #f107a3);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0px 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Tables (glass style) */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    background-color: var(--table-bg);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    backdrop-filter: blur(15px) saturate(150%);
+    -webkit-backdrop-filter: blur(15px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+table th, table td {
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 12px 10px;
+    text-align: center;
+}
+
+table th {
+    background-color: var(--table-th-bg);
+    color: black;
+    font-weight: bold;
+}
+
+table tr:nth-child(even) {
+    background-color: var(--table-alt-bg);
+}
+
+/* Forms (glass style) */
+form {
+    background-color: var(--card-bg);
+    padding: 20px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+input, select, textarea, button {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px;
+    margin: 8px 0;
+    border-radius: 6px;
+    border: none;
+    outline: none;
+}
+
+input, select, textarea {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: var(--text-color);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+button {
+    background-color: var(--button-bg);
+    color: black;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+button:hover {
+    background-color: var(--button-hover-bg);
+}
+
+.edit-button {
+    background-color: var(--edit-bg);
+    color: black;
+}
+
+.delete-button {
+    background-color: var(--delete-bg);
+    color: white;
+}
+
+.edit-button:hover {
+    background-color: var(--edit-hover-bg);
+}
+
+.delete-button:hover {
+    background-color: var(--delete-hover-bg);
+}
+
+/* Cards (glass) */
+.card {
+    background-color: var(--card-bg);
+    padding: 25px;
+    border-radius: 12px;
+    margin-bottom: 25px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    backdrop-filter: blur(18px) saturate(180%);
+    -webkit-backdrop-filter: blur(18px) saturate(180%);
+    border: 1px solid rgba(255,255,255,0.15);
+}
+
+/* Responsiveness */
+@media (max-width: 1024px) {
+    main {
+        padding: 15px;
+    }
+    form, .card {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    header, footer {
+        padding: 10px;
+        font-size: 14px;
+    }
+    button, input, select, textarea {
+        font-size: 14px;
+        padding: 8px;
+    }
+}
+
+#money-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1;
+    pointer-events: none;
+}
