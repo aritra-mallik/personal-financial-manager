@@ -17,6 +17,8 @@ from .utils_refresh import refresh_if_stale
 from django.http import JsonResponse
 from django.core.cache import cache
 from django.utils import timezone
+from budget.utils import check_budget_warnings
+from finance.models import Expense
 
 
 @login_required
@@ -75,6 +77,14 @@ def add_investment(request):
 
             inv.save()
             messages.success(request, 'Investment added successfully.')
+            # 🔹 Trigger budget check with actual user request (enables popup)
+            try:
+                expense = Expense.objects.filter(user=request.user, investment=inv).first()
+                if expense:
+                    check_budget_warnings(request, expense)
+            except Exception as e:
+                import logging
+                logging.warning(f"Budget check skipped: {e}")
             return redirect('investment_list')
         else:
             # Display a clean message if invalid date range
@@ -86,6 +96,7 @@ def add_investment(request):
     else:
         form = InvestmentForm()
     return render(request, 'investment/investment_form.html', {'form': form})
+
 
 @login_required
 def edit_investment(request, id):
@@ -104,6 +115,14 @@ def edit_investment(request, id):
 
             inv.save()
             messages.success(request, 'Investment updated successfully.')
+            # 🔹 Trigger budget check with actual user request (enables popup)
+            try:
+                expense = Expense.objects.filter(user=request.user, investment=inv).first()
+                if expense:
+                    check_budget_warnings(request, expense)
+            except Exception as e:
+                import logging
+                logging.warning(f"Budget check skipped: {e}")
             return redirect('investment_list')
         
         else:
@@ -121,7 +140,7 @@ def delete_investment(request, id):
     investment = get_object_or_404(Investment, id=id, user=request.user)
     if request.method == "POST":
         investment.delete()
-        messages.success(request, "Investment deleted successfully.")
+        messages.success(request, "Investment deleted successfully. Investment amount has been returned to your account.")
     else:
         messages.warning(request, "Please confirm deletion.")
     return redirect("investment_list")
@@ -132,7 +151,7 @@ def delete_all_investments(request):
         investments = Investment.objects.filter(user=request.user)
         count = investments.count()
         investments.delete()
-        messages.success(request, f"All ({count}) investments deleted successfully.")
+        messages.success(request, f"All ({count}) investments deleted successfully. Investment amount has been returned to your account.")
     else:
         messages.warning(request, "Please confirm deletion of all investments.")
     return redirect("investment_list")
@@ -318,3 +337,4 @@ def investment_portfolio(request):
 
 
     return render(request, "investment/investment_portfolio.html", context)
+
