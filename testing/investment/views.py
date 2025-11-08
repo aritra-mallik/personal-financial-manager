@@ -76,10 +76,16 @@ def add_investment(request):
             inv.save()
             messages.success(request, 'Investment added successfully.')
             return redirect('investment_list')
+        else:
+            # Display a clean message if invalid date range
+            if 'end_date' in form.errors and "End date must be after start date." in form.errors['end_date']:
+                messages.error(request, "⚠️ Please ensure the end date is after the start date.")
+            else:
+                messages.error(request, "⚠️ Please correct the highlighted errors below.")
+                
     else:
         form = InvestmentForm()
     return render(request, 'investment/investment_form.html', {'form': form})
-
 
 @login_required
 def edit_investment(request, id):
@@ -99,11 +105,16 @@ def edit_investment(request, id):
             inv.save()
             messages.success(request, 'Investment updated successfully.')
             return redirect('investment_list')
+        
+        else:
+            # Display a clean message if invalid date range
+            if 'end_date' in form.errors and "End date must be after start date." in form.errors['end_date']:
+                messages.error(request, "⚠️ Please ensure the end date is after the start date.")
+            else:
+                messages.error(request, "⚠️ Please correct the highlighted errors below.")
     else:
         form = InvestmentForm(instance=investment)
     return render(request, 'investment/investment_form.html', {'form': form})
-
-
 
 @login_required
 def delete_investment(request, id):
@@ -304,5 +315,6 @@ def investment_portfolio(request):
         "total_overall_estimated": total_overall_estimated.quantize(Decimal('0.01')),
         "total_overall_profit": total_overall_profit.quantize(Decimal('0.01')),
     }
+
 
     return render(request, "investment/investment_portfolio.html", context)
