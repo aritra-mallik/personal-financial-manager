@@ -126,7 +126,7 @@ document.addEventListener("DOMContentLoaded", function () {
   if (!typeSelect || !expectedField) return;
 
   function updateExpectedReturn(type) {
-    const url = `/investment/get-expected-return/?type=${encodeURIComponent(type)}`;
+    const url = "{% url 'get_expected_return' %}?type=" + encodeURIComponent(type);
     fetch(url, { credentials: "same-origin" })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
@@ -210,4 +210,5 @@ document.addEventListener("DOMContentLoaded", function () {
     console.log("Investment type selected:", selectedType);
     if (selectedType) updateExpectedReturn(selectedType);
   });
+
 }); {% endcomment %}
