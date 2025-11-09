@@ -316,12 +316,25 @@ def upload_expense_csv(request):
             if not date_str or not name or amount == 0:
                 skipped_count += 1
                 continue
-
-            # Prevent overspending
+            
+            # Prevent overspending — reject entire CSV if total expense would exceed income
             if (total_expense + amount) > total_income:
-                skipped_count += 1
-                messages.warning(request, f"Skipping '{name}' - exceeds total income!")
-                continue
+                # Clear any previous messages
+                list(messages.get_messages(request))  
+                messages.error(
+                    request,
+                    f"❌ CSV upload rejected. "
+                    f"Importing '{name}' would exceed your total income. "
+                    f"Please review your data or update your income records."
+                )
+                return redirect("add_expense")
+
+
+            # # Prevent overspending
+            # if (total_expense + amount) > total_income:
+            #     skipped_count += 1
+            #     messages.warning(request, f"Skipping '{name}' - exceeds total income!")
+            #     continue
 
             # Create Expense
             Expense.objects.create(
@@ -511,6 +524,17 @@ def upload_bank_statement(request):
                 logger.warning(f"⚠️ Skipped row: {e}")
                 #skipped += 1
                 continue
+            
+        # ======= PRECHECK: Abort entire CSV if expenses exceed income =======
+        total_new_expenses = sum(amt for _, _, amt in expense_rows)
+        if (total_expense + total_new_expenses) > (total_income + sum(amt for _, _, amt in income_rows)):
+            messages.error(
+                request,
+                "❌ Bank statement upload cancelled — total expenses in file exceed total available income. "
+                "Please record sufficient income before uploading this file."
+            )
+            return redirect("dashboard")
+        # ===================================================================
 
         # 🔄 Import all income first
         for date_str, description, amount in income_rows:
@@ -540,11 +564,11 @@ def upload_bank_statement(request):
                     skipped += 1
                     continue
 
-                # Only skip if total still insufficient
-                if (total_expense + amount) > total_income:
-                    logger.warning(f"⚠️ Skipped expense that would exceed income: {description} ({amount}) please enter the income first.")
-                    skipped += 1
-                    continue
+                # # Only skip if total still insufficient
+                # if (total_expense + amount) > total_income:
+                #     logger.warning(f"⚠️ Skipped expense that would exceed income: {description} ({amount}) please enter the income first.")
+                #     skipped += 1
+                #     continue
 
                 category = ml_predict_expense_category([description])[0]
                 exp_obj = Expense.objects.create(
@@ -1208,4 +1232,5 @@ def dashboard(request):
 
 
                 
+
 
