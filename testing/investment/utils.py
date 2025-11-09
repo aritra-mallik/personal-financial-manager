@@ -33,17 +33,10 @@ def get_expected_return_by_type(inv_type):
         "mutual fund": lambda: get_yahoo_return("^NSMIDCP"),  # or USA’s ^GSPC
         "bond": lambda: get_yahoo_return("ICICIB22.NS"),  # 10-year ICICI bond yield
         "real estate": lambda: get_yahoo_return("EMBASSY.NS"),  # US REIT ETF
-        # "fd": lambda: 6.5,
-        # "rd": lambda: 7.0,
-        # "pension": lambda: 8.5,
+        
     }
 
-    # func = mapping.get(t)
-    # if func:
-    #     rate = func()
-    #     if rate:
-    #         return rate
-    # return 6.0
+
     func = mapping.get(t)
     if not func:
         return None  # ❌ skip unknown types
@@ -54,3 +47,4 @@ def get_expected_return_by_type(inv_type):
         return None
 
     return rate
+
