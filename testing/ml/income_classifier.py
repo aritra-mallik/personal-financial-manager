@@ -159,7 +159,7 @@ def train_classifier(csv_path=CSV_PATH, save_model=True):
     return _model_bundle
 
 # ------------------ Prediction ------------------ #
-def predict_category(texts):
+def predict_category(texts, confidence_threshold=0.2):
     model_bundle = load_classifier()
     embedder = model_bundle["embedder"]
     clf = model_bundle["classifier"]
@@ -168,15 +168,22 @@ def predict_category(texts):
     preds = []
 
     for t in clean_texts_list:
-        # 1️⃣ Keyword mapping first
+        # 1️⃣ Keyword mapping first (for obvious matches)
         mapped = keyword_category_mapping(t)
         if mapped:
             preds.append(mapped)
             continue
 
-        # 2️⃣ Otherwise model prediction
+        # 2️⃣ Model prediction with confidence threshold
         emb = encode_texts(embedder, [t])
-        pred = clf.predict(emb)[0]
-        preds.append(pred if pred in INCOME_CATEGORIES else MISC_CATEGORY)
+        probs = clf.predict_proba(emb)[0]
+        max_prob = np.max(probs)
+        pred = clf.classes_[np.argmax(probs)]
+
+        # If model isn't confident, fallback to "Other Income"
+        if max_prob < confidence_threshold:
+            preds.append(MISC_CATEGORY)
+        else:
+            preds.append(pred if pred in INCOME_CATEGORIES else MISC_CATEGORY)
 
     return preds
