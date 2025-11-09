@@ -511,7 +511,7 @@ def upload_bank_statement(request):
                         txn_type = "expense"
 
                 if amount == 0 or txn_type == "unknown":
-                    #skipped += 1
+                    skipped += 1
                     continue
 
                 # Buffer row
@@ -522,7 +522,7 @@ def upload_bank_statement(request):
 
             except Exception as e:
                 logger.warning(f"⚠️ Skipped row: {e}")
-                #skipped += 1
+                skipped += 1
                 continue
             
         # ======= PRECHECK: Abort entire CSV if expenses exceed income =======
@@ -1232,5 +1232,6 @@ def dashboard(request):
 
 
                 
+
 
 
