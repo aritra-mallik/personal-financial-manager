@@ -177,6 +177,10 @@ def investment_portfolio(request):
         if not start or not end or annual_rate is None:
             return principal
 
+        # 🔧 Normalize rate to Decimal
+        if not isinstance(annual_rate, Decimal):
+            annual_rate = Decimal(str(annual_rate))
+
         days = (end - start).days
         if days <= 0 or annual_rate == 0:
             return principal
@@ -344,4 +348,5 @@ def investment_portfolio(request):
     }
 
     return render(request, "investment/investment_portfolio.html", context)
+
 
