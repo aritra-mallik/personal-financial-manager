@@ -1,4 +1,133 @@
-/* Define variables for both themes */
+/* ================================================
+   Personal Financial Manager (PFM)
+   Minimal CSS for Terms & Privacy Pages
+   ================================================ */
+
+/* ---------- Theme Variables ---------- */
+body {
+    --bg-color: #ffffff;
+    --text-color: #121212;
+    --card-bg: rgba(245, 245, 245, 0.6);
+}
+
+body.dark {
+    --bg-color: #121212;
+    --text-color: #E0E0E0;
+    --card-bg: rgba(30, 30, 30, 0.5);
+}
+
+/* ---------- Base Styling ---------- */
+body {
+    margin: 0;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    transition: background 0.4s ease, color 0.4s ease;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+main {
+    padding: 30px 20px;
+    max-width: 900px;
+    margin: auto;
+}
+
+.page-title {
+    text-align: center;
+    margin-bottom: 25px;
+    font-size: 2em;
+    font-weight: bold;
+    background: linear-gradient(135deg, #7b2ff7, #f107a3);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+/* ---------- Card Container ---------- */
+.card {
+    background-color: var(--card-bg);
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    backdrop-filter: blur(18px) saturate(180%);
+    -webkit-backdrop-filter: blur(18px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* ---------- Text & Lists ---------- */
+.card h3 {
+    margin-top: 25px;
+    color: #00BFA6;
+}
+
+.card p {
+    margin: 10px 0;
+}
+
+.card ul {
+    margin: 10px 0 20px 20px;
+    padding-left: 15px;
+}
+
+.card ul li {
+    margin-bottom: 8px;
+}
+
+/* ---------- Links ---------- */
+a {
+    color: #00BFA6;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* ---------- Background Canvas ---------- */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: auto;
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
+#money-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: -1;
+  pointer-events: none;
+}
+
+
+/* ---------- Responsive Design ---------- */
+@media (max-width: 1024px) {
+    main {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    header, footer {
+        padding: 10px;
+        font-size: 14px;
+    }
+    .page-title {
+        font-size: 1.6em;
+    }
+    .card {
+        padding: 20px;
+    }
+}
+
+/* 
 body {
     --bg-color: #ffffff;
     --text-color: #121212;
@@ -14,7 +143,6 @@ body {
     --delete-hover-bg: #e03a2e;
 }
 
-/* Dark Theme Overrides */
 body.dark {
     --bg-color: #121212;
     --text-color: #E0E0E0;
@@ -30,7 +158,7 @@ body.dark {
     --delete-hover-bg: #e03a2e;
 }
 
-/* Apply variables */
+
 body {
     margin: 0;
     font-family: Arial, sans-serif;
@@ -58,7 +186,6 @@ main {
     text-shadow: 0px 4px 6px rgba(0, 0, 0, 0.3);
 }
 
-/* Tables (glass style) */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -88,7 +215,6 @@ table tr:nth-child(even) {
     background-color: var(--table-alt-bg);
 }
 
-/* Forms (glass style) */
 form {
     background-color: var(--card-bg);
     padding: 20px;
@@ -151,7 +277,6 @@ button:hover {
     background-color: var(--delete-hover-bg);
 }
 
-/* Cards (glass) */
 .card {
     background-color: var(--card-bg);
     padding: 25px;
@@ -163,7 +288,7 @@ button:hover {
     border: 1px solid rgba(255,255,255,0.15);
 }
 
-/* Responsiveness */
+
 @media (max-width: 1024px) {
     main {
         padding: 15px;
@@ -193,3 +318,5 @@ button:hover {
     z-index: -1;
     pointer-events: none;
 }
+ */
+
