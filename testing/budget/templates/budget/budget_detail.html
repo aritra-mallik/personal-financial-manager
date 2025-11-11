@@ -91,7 +91,7 @@
             </thead>
             <tbody>
                 {% for cat in category_data %}
-                <tr {% if cat.spent > cat.limit %} style="background-color: #b56e74ff; color: #721c24;" {% endif %}>
+                <tr {% if cat.spent > cat.limit %} style="background-color: #b22222 ; color: #e8f5e9;" {% endif %}>
                     <td>
                         <input type="checkbox" class="category-checkbox" data-category-id="{{ cat.obj.id }}">
                     </td>
