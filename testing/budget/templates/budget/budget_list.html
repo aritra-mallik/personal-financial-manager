@@ -121,7 +121,7 @@
         </thead>
         <tbody>
             {% for data in budget_data %}
-            <tr {% if data.spent > data.obj.total_amount %} style="background-color: #b56e74ff; color: #721c24;" {% endif %}>
+            <tr {% if data.spent > data.obj.total_amount %} style="background-color: #b22222 ; color: #e8f5e9;" {% endif %}>
                 <td>
                     <input type="checkbox" class="row-checkbox" data-budget-id="{{ data.obj.id }}">
                 </td>
