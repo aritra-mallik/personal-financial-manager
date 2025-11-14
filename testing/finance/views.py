@@ -1203,26 +1203,53 @@ def delete_recurring_income(request, id):
 
 @login_required
 def dashboard(request):
-    
-    # Before loading dashboard, process any due recurring transactions
+
     process_recurring_transactions(request.user)
 
-    # Now dashboard works with normal Income & Expense only
-    income_total = Income.objects.filter(user=request.user).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-    expense_total = Expense.objects.filter(user=request.user).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    # --- Filters ---
+    view_type = request.GET.get("view", "monthly")
+    custom_start = request.GET.get("start")
+    custom_end = request.GET.get("end")
 
-    # Ensure values are Decimal
-    income_total = Decimal(income_total)
-    expense_total = Decimal(expense_total)
+    end_date = timezone.now().date()
+    if custom_end:
+        try:
+            end_date = datetime.strptime(custom_end, "%Y-%m-%d").date()
+        except:
+            pass
 
-    # Calculate balance as Decimal
-    balance = income_total - expense_total
+    start_date = None
 
-    # Optionally, round to 2 decimal places for display
-    balance = balance.quantize(Decimal('0.01'))
-    income_total = income_total.quantize(Decimal('0.01'))
-    expense_total = expense_total.quantize(Decimal('0.01'))
+    if view_type == "3m":
+        start_date = end_date - relativedelta(months=3)
+    elif view_type == "6m":
+        start_date = end_date - relativedelta(months=6)
+    elif view_type == "2y":
+        start_date = end_date - relativedelta(years=2)
+    elif view_type == "all":
+        start_date = Income.objects.filter(user=request.user).order_by("date").first().date if Income.objects.filter(user=request.user).exists() else end_date
+    elif custom_start and custom_end:
+        try:
+            start_date = datetime.strptime(custom_start, "%Y-%m-%d").date()
+            end_date = datetime.strptime(custom_end, "%Y-%m-%d").date()
+        except:
+            pass
+    else:
+        start_date = end_date - relativedelta(months=12)
 
+    # --- QS for chart data ---
+    income_qs = Income.objects.filter(user=request.user, date__range=(start_date, end_date))
+    expense_qs = Expense.objects.filter(user=request.user, date__range=(start_date, end_date))
+
+    # --- Dashboard totals ---
+    income_total = Decimal(Income.objects.filter(user=request.user).aggregate(total=Sum('amount'))['total'] or 0)
+    expense_total = Decimal(Expense.objects.filter(user=request.user).aggregate(total=Sum('amount'))['total'] or 0)
+
+    balance = (income_total - expense_total).quantize(Decimal("0.01"))
+    income_total = income_total.quantize(Decimal("0.01"))
+    expense_total = expense_total.quantize(Decimal("0.01"))
+
+    # --- Last transaction ---
     last_income = Income.objects.filter(user=request.user).order_by('-date').first()
     last_expense = Expense.objects.filter(user=request.user).order_by('-date').first()
 
@@ -1230,74 +1257,161 @@ def dashboard(request):
         last_transaction = last_income if last_income.date > last_expense.date else last_expense
     elif last_income:
         last_transaction = last_income
-    elif last_expense:
-        last_transaction = last_expense
     else:
-        last_transaction = None
-        
+        last_transaction = last_expense
+
+    # --- Recurring Expenses ---
     today = timezone.now().date()
-    # Get due recurring expenses (pending)
-    due_expenses = RecurringExpense.objects.filter(user=request.user, next_due_date__lte=today, status__in=["active", "pending"]).order_by('next_due_date')
+    due_expenses = RecurringExpense.objects.filter(
+        user=request.user,
+        next_due_date__lte=today,
+        status__in=["active", "pending"]
+    ).order_by("next_due_date")
 
-    # Monthly trends
+    # -------------------------------------------------------
+    # 1. MONTHLY TRENDS (Month + Year)
+    # -------------------------------------------------------
     monthly_income = (
-        Income.objects.filter(user=request.user).annotate(month=ExtractMonth('date')).values('month').annotate(total=Sum('amount')).order_by('month')
+        income_qs
+        .annotate(year=ExtractYear('date'), month=ExtractMonth('date'))
+        .values('year', 'month')
+        .annotate(total=Sum('amount'))
+        .order_by('year', 'month')
     )
+
     monthly_expense = (
-        Expense.objects.filter(user=request.user).annotate(month=ExtractMonth('date')).values('month').annotate(total=Sum('amount')).order_by('month')
+        expense_qs
+        .annotate(year=ExtractYear('date'), month=ExtractMonth('date'))
+        .values('year', 'month')
+        .annotate(total=Sum('amount'))
+        .order_by('year', 'month')
     )
 
-    income_dict = {item['month']: float(item['total']) for item in monthly_income}
-    expense_dict = {item['month']: float(item['total']) for item in monthly_expense}
+    # Build dict with keys like "2024-01"
+    income_dict = {
+        f"{item['year']}-{item['month']:02d}": float(item['total'])
+        for item in monthly_income
+    }
+    expense_dict = {
+        f"{item['year']}-{item['month']:02d}": float(item['total'])
+        for item in monthly_expense
+    }
 
-    months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
-    income_data = [income_dict.get(i+1, 0) for i in range(12)]
-    expense_data = [expense_dict.get(i+1, 0) for i in range(12)]
+    # Full monthly label list across range
+    current = start_date.replace(day=1)
+    monthly_labels = []
 
-    # Weekly trends
+    while current <= end_date:
+        monthly_labels.append(current.strftime("%Y-%m"))
+        current += relativedelta(months=1)
+
+    income_data = [income_dict.get(lbl, 0) for lbl in monthly_labels]
+    expense_data = [expense_dict.get(lbl, 0) for lbl in monthly_labels]
+
+    # -------------------------------------------------------
+    # 2. WEEKLY TRENDS (Week + Year)
+    # -------------------------------------------------------
     weekly_income = (
-        Income.objects.filter(user=request.user).annotate(week=ExtractWeek('date')).values('week').annotate(total=Sum('amount')).order_by('week')
+        income_qs
+        .annotate(year=ExtractYear('date'), week=ExtractWeek('date'))
+        .values('year', 'week')
+        .annotate(total=Sum('amount'))
+        .order_by('year', 'week')
     )
+
     weekly_expense = (
-        Expense.objects.filter(user=request.user).annotate(week=ExtractWeek('date')).values('week').annotate(total=Sum('amount')).order_by('week')
+        expense_qs
+        .annotate(year=ExtractYear('date'), week=ExtractWeek('date'))
+        .values('year', 'week')
+        .annotate(total=Sum('amount'))
+        .order_by('year', 'week')
     )
 
-    week_income_dict = {w['week']: float(w['total']) for w in weekly_income}
-    week_expense_dict = {w['week']: float(w['total']) for w in weekly_expense}
+    week_income_dict = {
+        f"{item['year']}-W{item['week']}": float(item['total'])
+        for item in weekly_income
+    }
+    week_expense_dict = {
+        f"{item['year']}-W{item['week']}": float(item['total'])
+        for item in weekly_expense
+    }
 
-    weeks = [f"Week {i}" for i in range(1, 53)]
-    weekly_income_data = [week_income_dict.get(i, 0) for i in range(1, 53)]
-    weekly_expense_data = [week_expense_dict.get(i, 0) for i in range(1, 53)]
+    # Build weekly ranges
+    def generate_week_labels(start_date, end_date):
+        labels = []
+        weeks = []
 
-    # Category-wise
+        current = start_date
+        while current <= end_date:
+            w_year, w_week = current.isocalendar()[0], current.isocalendar()[1]
+
+            week_start = current
+            week_end = current + timedelta(days=6)
+            if week_end > end_date:
+                week_end = end_date
+
+            label = f"{week_start.strftime('%d')}–{week_end.strftime('%d %b %Y')}"
+            key = f"{w_year}-W{w_week}"
+
+            labels.append(label)
+            weeks.append(key)
+
+            current = week_end + timedelta(days=1)
+
+        return labels, weeks
+
+    weekly_labels, week_keys = generate_week_labels(start_date, end_date)
+
+    weekly_income_data = [week_income_dict.get(k, 0) for k in week_keys]
+    weekly_expense_data = [week_expense_dict.get(k, 0) for k in week_keys]
+
+    # -------------------------------------------------------
+    # 3. CATEGORY-WISE TOTALS
+    # -------------------------------------------------------
     category_expenses = (
-        Expense.objects.filter(user=request.user).values('category').annotate(total=Sum('amount')).order_by('-total')
+        expense_qs.values('category')
+        .annotate(total=Sum('amount'))
+        .order_by('-total')
     )
+
     category_labels = [c['category'] for c in category_expenses]
     category_values = [float(c['total']) for c in category_expenses]
 
+    # -------------------------------------------------------
+    # CONTEXT
+    # -------------------------------------------------------
     context = {
         "total_income": income_total,
         "total_expense": expense_total,
         "balance": balance,
-        "months": months,
+
+        "months": monthly_labels,
         "income_data": income_data,
         "expense_data": expense_data,
-        "weeks": weeks,
+
+        "weeks": weekly_labels,
         "weekly_income_data": weekly_income_data,
         "weekly_expense_data": weekly_expense_data,
+
         "category_labels": category_labels,
         "category_values": category_values,
+
         "last_transaction": last_transaction,
         "last_income": last_income,
         "last_expense": last_expense,
-        "due_expenses": due_expenses
+        "due_expenses": due_expenses,
+        
+        "view_type": view_type,
+        "custom_start": custom_start,
+        "custom_end": custom_end,
     }
+
     return render(request, "finance/dashboard.html", context)
 
 
 
                 
+
 
 
 
