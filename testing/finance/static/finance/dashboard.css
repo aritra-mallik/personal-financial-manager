@@ -230,18 +230,6 @@ body.dark .chart-controls button {
     }
 }
 
-/* Canvas responsiveness */
-/* canvas {
-    max-width: 100%;
-}
-#categoryExpenseChart {
-    width: 55%;
-    height: 250px;
-    max-width: none;
-    margin: auto;
-    display: block;
-} */
-
 .last-transaction {
     margin-top: 20px;
     padding: 15px;
@@ -451,5 +439,6 @@ body.light {
     --input-bg: #f5f5f5;
     --border-color: #121212;
 }
+
 
 
