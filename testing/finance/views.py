@@ -1,13 +1,14 @@
+from datetime import datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
+from urllib import request
 from django.shortcuts import render, redirect
 from dateutil.relativedelta import relativedelta
-
 from .models import Expense, Income, RecurringIncome, RecurringExpense
 from django.utils import timezone
 from django.db.models import Sum, F, Q
 from django.core.paginator import Paginator
 from django.contrib import messages
-from django.db.models.functions import TruncMonth, TruncYear, ExtractWeek, ExtractMonth
+from django.db.models.functions import TruncMonth, ExtractWeek, ExtractMonth, TruncYear, ExtractYear
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
@@ -625,46 +626,80 @@ def expense_log(request):
     expenses = Expense.objects.filter(user=request.user).order_by('-date')
     categories = [choice[0] for choice in Expense.CATEGORY_CHOICES]
 
-    # --- New: view filter ---
     view_type = request.GET.get('view', 'monthly')
+    start_date = None
     end_date = timezone.now().date()
 
-    # --- Monthly (last 12 months) ---
-    if view_type == 'monthly':
+    # --- Custom Range ---
+    custom_start = request.GET.get('start')
+    custom_end = request.GET.get('end')
+
+    if custom_start and custom_end:
+        try:
+            start_date = datetime.strptime(custom_start, '%Y-%m-%d').date()
+            end_date = datetime.strptime(custom_end, '%Y-%m-%d').date()
+
+            custom_data = (
+                Expense.objects.filter(user=request.user, date__range=(start_date, end_date))
+                .annotate(period=TruncMonth('date'))
+                .values('period')
+                .annotate(total=Sum('amount'))
+                .order_by('period')
+            )
+            labels = [e['period'].strftime('%Y-%m') for e in custom_data]
+            data = [float(e['total']) for e in custom_data]
+
+        except ValueError:
+            pass
+
+    # --- Predefined ranges ---
+    elif view_type == '3m':
+        start_date = end_date - relativedelta(months=3)
+
+    elif view_type == '6m':
+        start_date = end_date - relativedelta(months=6)
+
+    elif view_type == 'monthly':  # last 12 months
         start_date = end_date - relativedelta(months=12)
-        aggregated = (
-            Expense.objects.filter(user=request.user, date__gte=start_date)
+
+    elif view_type == '2y':
+        start_date = end_date - relativedelta(years=2)
+
+    # --- If any start_date was set above ---
+    if start_date and not (custom_start and custom_end):
+        monthly_data = (
+            Expense.objects.filter(user=request.user, date__range=(start_date, end_date))
             .annotate(period=TruncMonth('date'))
             .values('period')
             .annotate(total=Sum('amount'))
             .order_by('period')
         )
-        labels = [e['period'].strftime('%Y-%m') for e in aggregated]
-        data = [float(e['total']) for e in aggregated]
+        labels = [e['period'].strftime('%Y-%m') for e in monthly_data]
+        data = [float(e['total']) for e in monthly_data]
 
     # --- Yearly ---
     elif view_type == 'yearly':
-        aggregated = (
+        yearly_data = (
             Expense.objects.filter(user=request.user)
             .annotate(period=TruncYear('date'))
             .values('period')
             .annotate(total=Sum('amount'))
             .order_by('period')
         )
-        labels = [e['period'].strftime('%Y') for e in aggregated]
-        data = [float(e['total']) for e in aggregated]
+        labels = [e['period'].strftime('%Y') for e in yearly_data]
+        data = [float(e['total']) for e in yearly_data]
 
-    # --- All-time (monthly) ---
-    else:
-        aggregated = (
+    # --- All time (monthly) ---
+    elif view_type == 'all':
+        all_data = (
             Expense.objects.filter(user=request.user)
             .annotate(period=TruncMonth('date'))
             .values('period')
             .annotate(total=Sum('amount'))
             .order_by('period')
         )
-        labels = [e['period'].strftime('%Y-%m') for e in aggregated]
-        data = [float(e['total']) for e in aggregated]
+        labels = [e['period'].strftime('%Y-%m') for e in all_data]
+        data = [float(e['total']) for e in all_data]
 
     # --- Pagination (unchanged) ---
     paginator = Paginator(expenses, 20)
@@ -691,6 +726,8 @@ def expense_log(request):
         'page_obj': page_obj,
         'page_range': page_range,
         'view_type': view_type,
+        'custom_start': custom_start or '',
+        'custom_end': custom_end or '',
         #pass raw values for easy checks in template
         'spent_so_far': forecast['spent_so_far'],
         'current_month_expected': forecast['this_month_expected'],
@@ -725,15 +762,44 @@ def income_history(request):
     incomes = Income.objects.filter(user=request.user).order_by('-date')
     categories = [choice[0] for choice in Income.CATEGORY_CHOICES]
 
-    # --- NEW: filter selection ---
     view_type = request.GET.get('view', 'monthly')
+    start_date = None
     end_date = timezone.now().date()
 
-    # --- monthly (last 12 months) ---
-    if view_type == 'monthly':
+    # --- Handle custom range ---
+    custom_start = request.GET.get('start')
+    custom_end = request.GET.get('end')
+    
+    if custom_start and custom_end:
+        try:
+            start_date = datetime.strptime(custom_start, '%Y-%m-%d').date()
+            end_date = datetime.strptime(custom_end, '%Y-%m-%d').date()
+            custom_data = (
+                Income.objects.filter(user=request.user, date__range=(start_date, end_date))
+                .annotate(period=TruncMonth('date'))
+                .values('period')
+                .annotate(total=Sum('amount'))
+                .order_by('period')
+            )
+            labels = [entry['period'].strftime('%Y-%m') for entry in custom_data]
+            data = [float(entry['total']) for entry in custom_data]
+        except ValueError:
+            pass
+
+    # --- Standard filters ---
+    elif view_type == '3m':
+        start_date = end_date - relativedelta(months=3)
+    elif view_type == '6m':
+        start_date = end_date - relativedelta(months=6)
+    elif view_type == '2y':
+        start_date = end_date - relativedelta(years=2)
+    elif view_type == 'monthly':
         start_date = end_date - relativedelta(months=12)
+
+    # --- If we have a start_date, compute data ---
+    if start_date and not (custom_start and custom_end):
         monthly_data = (
-            Income.objects.filter(user=request.user, date__gte=start_date)
+            Income.objects.filter(user=request.user, date__range=(start_date, end_date))
             .annotate(period=TruncMonth('date'))
             .values('period')
             .annotate(total=Sum('amount'))
@@ -742,7 +808,7 @@ def income_history(request):
         labels = [entry['period'].strftime('%Y-%m') for entry in monthly_data]
         data = [float(entry['total']) for entry in monthly_data]
 
-    # --- yearly ---
+    # --- yearly and all time remain same ---
     elif view_type == 'yearly':
         yearly_data = (
             Income.objects.filter(user=request.user)
@@ -754,8 +820,7 @@ def income_history(request):
         labels = [entry['period'].strftime('%Y') for entry in yearly_data]
         data = [float(entry['total']) for entry in yearly_data]
 
-    # --- all time (monthly grouped) ---
-    else:
+    elif view_type == 'all':
         all_data = (
             Income.objects.filter(user=request.user)
             .annotate(period=TruncMonth('date'))
@@ -766,11 +831,10 @@ def income_history(request):
         labels = [entry['period'].strftime('%Y-%m') for entry in all_data]
         data = [float(entry['total']) for entry in all_data]
 
-    # --- Pagination unchanged ---
+    # Pagination logic unchanged
     paginator = Paginator(incomes, 20)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
-
     total_pages = paginator.num_pages
     current_page = page_obj.number
     window_size = 5
@@ -788,6 +852,8 @@ def income_history(request):
         'page_obj': page_obj,
         'page_range': page_range,
         'view_type': view_type,
+        'custom_start': custom_start or '',
+        'custom_end': custom_end or '',
     }
     return render(request, 'finance/income_history.html', context)
 
@@ -1232,6 +1298,7 @@ def dashboard(request):
 
 
                 
+
 
 
 
