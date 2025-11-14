@@ -182,16 +182,46 @@
         </div>
     </div>
 
-    <div class="chart-placeholder" style="position: relative;"> 
-        <form method="get" id="viewForm" style="position: absolute; top: 10px; right: 10px; padding: 5px 8px;">
-            <select name="view" id="viewSelect" onchange="document.getElementById('viewForm').submit()">
+    <div class="chart-placeholder" style="position: relative;">
+
+        <!-- Filter Form (Top Right) -->
+        <form method="get" id="viewForm" 
+            style="position:absolute; top:6px; right:6px; display:flex !important; flex-direction:row !important; align-items:center; gap:10px; width:auto !important; padding:0 !important; background: transparent!important; border:none;">
+
+            <!-- View Type Selector -->
+            <select name="view" id="viewSelect"
+                onchange="handleViewChange()"
+                style="padding:6px 10px; color:var(--text-color); width:auto; border:1px solid #ccc; border-radius:4px;">
+                <option value="3m" {% if view_type == '3m' %}selected{% endif %}>Last 3 Months</option>
+                <option value="6m" {% if view_type == '6m' %}selected{% endif %}>Last 6 Months</option>
                 <option value="monthly" {% if view_type == 'monthly' %}selected{% endif %}>Last 1 Year</option>
+                <option value="2y" {% if view_type == '2y' %}selected{% endif %}>Last 2 Years</option>
                 <option value="yearly" {% if view_type == 'yearly' %}selected{% endif %}>Yearly</option>
-                <option value="all" {% if view_type == 'all' %}selected{% endif %}>All Time (monthly)</option>
+                <option value="all" {% if view_type == 'all' %}selected{% endif %}>All Time</option>
+                <option value="custom" {% if custom_start and custom_end %}selected{% endif %}>Custom Range</option>
             </select>
+
+            <!-- Reset Button (moved beside selector) -->
+            <button type="button" onclick="resetChartFilters()" 
+                class="edit-button" style="padding:6px 10px; cursor:pointer; display:inline-flex; width:auto;">
+                Reset
+            </button>
+
+            <!-- Custom Date Range (hidden unless "custom" is selected) -->
+            <div id="customDateFields" 
+                style="display: none; align-items: center; gap: 6px; white-space:nowrap;">
+                <label style="color:var(--text-color); font-size:0.9em;">From:</label>
+                <input type="date" name="start" id="startDate" value="{{ custom_start }}" style="padding:4px 6px; background: #c6c7e4ff; color: #111; border:none; border-radius:6px;">
+                <label style="color:var(--text-color); font-size:0.9em;">To:</label>
+                <input type="date" name="end" id="endDate" value="{{ custom_end }}" style="padding:4px 6px; background: #c6c7e4ff; color: #111; border:none; border-radius:6px;">
+                <button type="submit" style="padding:6px 10px; cursor:pointer;">Apply</button>
+            </div>
         </form>
+
+        <!-- Chart Canvas -->
         <canvas id="expenseLogChart"></canvas>
     </div>
+
 </main>
 </div>
 
@@ -265,53 +295,130 @@ function filterByCategory(category) {
         }
     });
     function getExpenseLogThemeColors() {
-    const isDark = document.body.classList.contains("dark");
-    return {
-        text: isDark ? "#E0E0E0" : "#222",
-        bar: isDark ? "#FF6F61" : "#CC4444",
-        grid: isDark ? "#333" : "#ccc"
-    };
-}
+        const isDark = document.body.classList.contains("dark");
+        return {
+            text: isDark ? "#E0E0E0" : "#222",
+            line: isDark ? "#FF6F61" : "#CC4444",
+            grid: isDark ? "#333" : "#ccc",
+            title: isDark ? "#fff" : "#111"
+        };
+    }
 
-function createExpenseLogChart() {
-    const ctx = document.getElementById('expenseLogChart').getContext("2d");
-    const colors = getExpenseLogThemeColors();
+    function createExpenseLogChart() {
+        const ctx = document.getElementById('expenseLogChart').getContext("2d");
+        const colors = getExpenseLogThemeColors();
 
-    return new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: {{ labels|safe }},
-            datasets: [{
-                label: 'Expenses ({{ user_currency }})',
-                data: {{ data|safe }},
-                backgroundColor: colors.bar,
-                borderRadius: 5
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { labels: { color: colors.text } },
-                zoom: {
-                    zoom: { wheel: { enabled: true }, mode: 'x' },
-                    pan: { enabled: true, mode: 'x' }
-                }
-            },
-            scales: {
-                x: { ticks: { color: colors.text }, grid: { color: colors.grid } },
-                y: { ticks: { color: colors.text }, grid: { color: colors.grid } }
+        // Format labels like "Jan, 2025"
+        const formattedLabels = {{ labels|safe }}.map(label => {
+            const parts = label.split("-");
+            if (parts.length === 2) {
+                const [year, month] = parts;
+                const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+                return `${monthNames[parseInt(month) - 1]}, ${year}`;
             }
+            return label;
+        });
+
+        return new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: formattedLabels,
+                datasets: [{
+                    label: 'Expenses ({{ user_currency }})',
+                    data: {{ data|safe }},
+                    borderColor: colors.line,
+                    backgroundColor: colors.line + "33",
+                    fill: true,
+                    tension: 0.35,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: "📉 Expense Trend Over Time",
+                        color: colors.title,
+                        font: { size: 25, weight: "bold" }
+                    },
+                    legend: { labels: { color: colors.text } },
+                    zoom: {
+                        zoom: { wheel: { enabled: true }, mode: 'x' },
+                        pan: { enabled: true, mode: 'x' }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: colors.text },
+                        grid: { color: colors.grid },
+                        title: {
+                            display: true,
+                            text: "Time (Months)",
+                            color: colors.text,
+                            font: { size: 14, weight: "bold" }
+                        }
+                    },
+                    y: {
+                        ticks: { 
+                            color: colors.text,
+                            callback: value => '{{ user_currency }}' + value 
+                        },
+                        grid: { color: colors.grid },
+                        title: {
+                            display: true,
+                            text: "Expense Amount",
+                            color: colors.text,
+                            font: { size: 14, weight: "bold" }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    let expenseLogChart = createExpenseLogChart();
+
+    document.addEventListener("themeChanged", () => {
+        expenseLogChart.destroy();
+        expenseLogChart = createExpenseLogChart();
+    });
+    //select form chart
+
+    function handleViewChange() {
+        const select = document.getElementById('viewSelect');
+        const customFields = document.getElementById('customDateFields');
+
+        if (select.value === 'custom') {
+            // ✅ Show date fields but DO NOT auto-submit
+            customFields.style.display = 'flex';
+        } else {
+            // ✅ Only auto-submit for non-custom views
+            customFields.style.display = 'none';
+            document.getElementById('viewForm').submit();
+        }
+    }
+
+
+    // If custom range was active on load, show fields
+    document.addEventListener("DOMContentLoaded", () => {
+        const select = document.getElementById('viewSelect');
+        if (select.value === 'custom') {
+            document.getElementById('customDateFields').style.display = 'flex';
         }
     });
-}
 
-let expenseLogChart = createExpenseLogChart();
+    // Reset button logic — revert to default "Last 1 Year" (monthly)
+    function resetChartFilters() {
+        const select = document.getElementById('viewSelect');
+        select.value = 'monthly'; // default view
+        document.getElementById('startDate').value = '';
+        document.getElementById('endDate').value = '';
+        document.getElementById('viewForm').submit();
+    }
 
-// Re-render when theme changes
-document.addEventListener("themeChanged", () => {
-    expenseLogChart.destroy();
-    expenseLogChart = createExpenseLogChart();
-});
 
 </script>
 </body>
