@@ -200,7 +200,7 @@ button:hover {
 }
 
 .chart-placeholder {
-    height: 250px;
+    height: 500px;
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -362,5 +362,3 @@ body.dark .prediction-card {
     border: 1px solid rgba(255, 255, 255, 0.15);
     box-shadow: 0 6px 25px rgba(0,0,0,0.5);
 }
-
-
