@@ -3,7 +3,10 @@ from django.dispatch import receiver
 from django.utils import timezone
 from .models import Investment
 from finance.models import Expense, Income
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, ROUND_HALF_UP, getcontext
+
+# make sure enough precision for pow
+getcontext().prec = 28
 
 # -------------------------------------------------
 # Helper: Choose income category based on investment type
@@ -22,17 +25,82 @@ def choose_income_category(inv_type):
 
 
 # -------------------------------------------------
-# Helper: Compact compound value calculator (same as portfolio logic)
+# Helper: Compact compound value calculator (supports frequency)
 # -------------------------------------------------
-def _calculate_estimated_value(amount, expected_return, start_date, end_date):
-    if not start_date or not end_date or expected_return is None:
-        return amount
+def _to_decimal(value):
+    if value is None:
+        return Decimal('0')
+    return value if isinstance(value, Decimal) else Decimal(str(value))
+
+def _calculate_estimated_value(amount, expected_return, start_date, end_date, investment_type=None, frequency=None):
+    """
+    amount: Decimal or numeric
+    expected_return: Decimal or numeric (annual percent, e.g. 4 for 4%)
+    investment_type: string like 'fd', 'rd', 'bond', 'stock' (optional)
+    frequency: optional override: 'Monthly','Quarterly','Biannual','Yearly'
+    """
+    amount = _to_decimal(amount)
+    expected_return = _to_decimal(expected_return or Decimal('0'))
+
+    if not start_date or not end_date or expected_return == 0:
+        return amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
     days = (end_date - start_date).days
     if days <= 0:
-        return amount
+        return amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
     years = Decimal(days) / Decimal("365")
-    value = amount * ((Decimal("1") + (expected_return / Decimal("100"))) ** years)
-    return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+    # Frequency defaults by type
+    type_based_freq = {
+        'fd': 'Quarterly',
+        'fixed deposit': 'Quarterly',
+        'bond': 'Biannual',
+        'rd': 'Monthly',
+        'recurring deposit': 'Monthly',
+        'stock': 'Yearly',
+        'mutual fund': 'Yearly',
+        'etf': 'Yearly',
+        'crypto': 'Yearly',
+        'pension': 'Yearly',
+        'real estate': 'Yearly',
+        'gold': 'Yearly',
+        'other': 'Yearly',
+    }
+
+    freq_map = {
+        'Monthly': Decimal('12'),
+        'Quarterly': Decimal('4'),
+        'Biannual': Decimal('2'),
+        'Yearly': Decimal('1'),
+    }
+
+    investment_type_lower = (investment_type or "").lower()
+    auto_freq = type_based_freq.get(investment_type_lower, 'Yearly')
+    final_frequency = frequency or auto_freq
+    comp_per_year = freq_map.get(final_frequency, Decimal('1'))
+
+    # rate per period (Decimal)
+    rate_per_period = (expected_return / Decimal('100')) / comp_per_year
+    periods = comp_per_year * years
+
+    # Special case: Recurring Deposit (approximate future value of monthly contributions)
+    if 'rd' in investment_type_lower or 'recurring' in investment_type_lower:
+        # Treat 'amount' as monthly contribution -> approximate formula
+        # months = int(years * 12)
+        # monthly_rate = (expected_return / 100) / 12
+        months = int((years * Decimal('12')).to_integral_value(rounding=ROUND_HALF_UP))
+        if months <= 0 or rate_per_period == 0:
+            return amount.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        monthly_rate = (expected_return / Decimal('100')) / Decimal('12')
+        # Future value of an annuity (contributions at period end)
+        value = amount * (((Decimal('1') + monthly_rate) ** months - Decimal('1')) / monthly_rate)
+        return value.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+    # Default compounding (including FD, bond, stock etc.)
+    # FD/bond/others -> compound per period
+    value = amount * ((Decimal('1') + rate_per_period) ** (periods))
+    return value.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
 
 # -------------------------------------------------
@@ -63,7 +131,7 @@ def sync_investment_records(sender, instance, created, **kwargs):
 
     expense, _ = Expense.objects.get_or_create(
         user=instance.user,
-        investment=instance,  # ✅ unique link
+        investment=instance,  # unique link
         defaults={
             "name": expense_name,
             "amount": instance.amount,
@@ -73,11 +141,12 @@ def sync_investment_records(sender, instance, created, **kwargs):
     )
 
     updated_fields = []
-    if expense.amount != instance.amount:
+    expected_date = instance.start_date or timezone.now().date()
+    if _to_decimal(expense.amount) != _to_decimal(instance.amount):
         expense.amount = instance.amount
         updated_fields.append("amount")
-    if expense.date != (instance.start_date or timezone.now().date()):
-        expense.date = instance.start_date or timezone.now().date()
+    if expense.date != expected_date:
+        expense.date = expected_date
         updated_fields.append("date")
     if name_changed:
         expense.name = expense_name
@@ -87,17 +156,24 @@ def sync_investment_records(sender, instance, created, **kwargs):
 
     # -------- INCOME handling --------
     income_name = f"Investment Maturity - {instance.name}"
-    income = Income.objects.filter(user=instance.user, investment=instance).first()  # ✅ unique link
+    income = Income.objects.filter(user=instance.user, investment=instance).first()  # unique link
 
     if instance.status == "Completed" and instance.end_date:
-        amount = Decimal(instance.amount)
-        expected_return = Decimal(instance.expected_return or 0)
-        est_value = _calculate_estimated_value(amount, expected_return, instance.start_date, instance.end_date)
-        category = choose_income_category(getattr(instance, "investment_type", ""))
+        amount = _to_decimal(instance.amount)
+        expected_return = _to_decimal(instance.expected_return or Decimal('0'))
+
+        # use investment_type and optional frequency if available on model
+        investment_type = getattr(instance, "investment_type", None)
+        frequency = getattr(instance, "frequency", None)
+
+        est_value = _calculate_estimated_value(amount, expected_return, instance.start_date, instance.end_date, investment_type, frequency)
+
+        category = choose_income_category(investment_type)
 
         if income:
             updated = False
-            if income.amount != est_value:
+            # compare decimals properly
+            if _to_decimal(income.amount) != est_value:
                 income.amount = est_value
                 updated = True
             if income.date != instance.end_date:
@@ -111,7 +187,7 @@ def sync_investment_records(sender, instance, created, **kwargs):
         else:
             Income.objects.create(
                 user=instance.user,
-                investment=instance,  # ✅ unique link
+                investment=instance,  # unique link
                 source=income_name,
                 amount=est_value,
                 date=instance.end_date,
@@ -127,12 +203,12 @@ def sync_investment_records(sender, instance, created, **kwargs):
 # -------------------------------------------------
 @receiver(post_delete, sender=Investment)
 def delete_linked_records(sender, instance, **kwargs):
-    Expense.objects.filter(investment=instance).delete()  # ✅ clean by link
-    Income.objects.filter(investment=instance).delete()   # ✅ clean by link
-
+    Expense.objects.filter(investment=instance).delete()
+    Income.objects.filter(investment=instance).delete()
 
 
 #     if projected_expense > total_income:
 #         raise ValidationError("Total income must be greater than or equal to total expenses before saving this investment.")
+
 
 
