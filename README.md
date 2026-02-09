@@ -35,15 +35,14 @@ It also introduces **basic predictive analytics and classification techniques** 
 
 ## 🗂️ Project Structure
 
-personal-financial-manager/
-│
-├── accounts/ # User authentication and profile management
-├── finance/ # Income & Expense recording and tracking categorization
-├── budget/ # Budget planning and limit enforcement
-├── templates/ # HTML templates for UI
-├── static/ # CSS and JavaScript assets
-├── manage.py # Django management script
-└── requirements.txt
+- **personal-financial-manager/**
+  - **accounts/** – Handles user authentication, registration, and profile management  
+  - **finance/** – Manages income and expense recording, tracking, and categorization  
+  - **budget/** – Responsible for budget planning, limits, and monitoring  
+  - **templates/** – Contains HTML templates for rendering the user interface  
+  - **static/** – Stores static assets such as CSS and JavaScript files  
+  - **manage.py** – Django project management and command-line utility  
+  - **requirements.txt** – List of Python dependencies required for the project  
 
 ---
 
